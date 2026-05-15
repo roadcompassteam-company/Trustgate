@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link rel="stylesheet" href="css/leaflet.photon.css">
+        <link rel="stylesheet" href="css/leaflet-measure.css">
+        <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+        <style>
+        html, body {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            font-family: 'Tajawal', sans-serif;
+            background-color: #1a202c;
+            overflow: hidden;
+        }
+
+        /* --- إعدادات الخريطة أسفل الشريط العلوي --- */
+        #map {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        /* --- تصميم الشريط العلوي (Top Bar) --- */
+        #top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: #151a23;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            border-bottom: 1px solid #2d3748;
+        }
+
+        .social-icons {
+            display: flex;
+            gap: 15px;
+            direction: ltr;
+        }
+
+        .social-icons .icon-btn {
+            background: #232a38;
+            color: #a0aec0;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+
+        .social-icons .icon-btn:hover {
+            background: #ff9800;
+            color: #fff;
+        }
+
+        .main-title {
+            color: #ffffff;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            direction: ltr;
+        }
+
+        .main-title span {
+            color: #ff9800;
+        }
+
+        .toggle-sidebar-btn {
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-size: 24px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .toggle-sidebar-btn:hover { color: #ff9800; }
+
+        /* --- تصميم القائمة الجانبية (Sidebar) --- */
+        #sidebar {
+            position: absolute;
+            top: 60px;
+            right: -400px;
+            width: 350px;
+            height: calc(100% - 60px);
+            background: #151a23;
+            z-index: 2001;
+            box-shadow: -5px 0 25px rgba(0,0,0,0.5);
+            transition: right 0.4s ease;
+            overflow-y: auto;
+            direction: ltr;
+            color: #ffffff;
+            padding: 30px 20px;
+            box-sizing: border-box;
+            border-left: 1px solid #2d3748;
+        }
+
+        #sidebar.active {
+            right: 0;
+        }
+
+        .close-sidebar-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #232a38;
+            border: none;
+            color: #a0aec0;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .close-sidebar-btn:hover { background: #e53e3e; color: #fff; }
+
+        .sidebar-header {
+            text-align: center;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #2d3748;
+        }
+
+        .sidebar-desc {
+            color: #a0aec0;
+            font-size: 14px;
+            line-height: 1.7;
+            margin-bottom: 25px;
+        }
+
+        .services-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 25px 0;
+        }
+
+        .services-list li {
+            position: relative;
+            padding-left: 15px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #e2e8f0;
+        }
+
+        .services-list li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 4px;
+            height: 12px;
+            width: 3px;
+            background-color: #ff9800;
+        }
+
+        .location-text {
+            font-size: 14px;
+            color: #e2e8f0;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* تصميم بطاقات التواصل */
+        .contact-card {
+            background: #1a202c;
+            border: 1px solid #2d3748;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: 0.3s;
+        }
+
+        .contact-card:hover {
+            border-color: #ff9800;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .contact-icon {
+            background: rgba(255, 152, 0, 0.1);
+            color: #ff9800;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .contact-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .contact-label {
+            color: #a0aec0;
+            font-size: 12px;
+            margin-bottom: 3px;
+        }
+
+        .contact-val {
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .contact-val a {
+            color: #ffffff;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+        
+        .contact-val a:hover {
+            color: #ff9800;
+        }
+
+        /* --- تصميم النوافذ المنبثقة (Popups) الخاصة بالخريطة --- */
+        .leaflet-popup-content-wrapper {
+            background: #1a202c !important;
+            color: #ffffff;
+            border-radius: 12px !important;
+            padding: 0 !important;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important;
+            border: 1px solid #2d3748;
+        }
+        
+        .leaflet-popup-tip { background: #1a202c !important; }
+        .leaflet-popup-content { margin: 0 !important; width: 290px !important; }
+        .leaflet-container a.leaflet-popup-close-button { color: #718096 !important; padding: 12px 12px 0 0 !important; font-size: 18px !important; }
+        .leaflet-container a.leaflet-popup-close-button:hover { color: #ff9800 !important; background: transparent !important; }
+
+        .custom-popup { font-family: 'Tajawal', sans-serif; padding: 20px 15px 15px 15px; direction: rtl; }
+        .popup-title { color: #ff9800; text-align: center; font-size: 19px; font-weight: 700; margin-bottom: 20px; border-bottom: 1px solid #2d3748; padding-bottom: 15px; }
+        
+        .popup-item {
+            display: flex; align-items: center; justify-content: flex-start; gap: 15px;
+            background: #232a38; margin-bottom: 12px; padding: 12px 15px; border-radius: 10px; transition: all 0.2s ease;
+        }
+        .popup-item:hover { background: #2a3344; }
+        
+        .item-details { display: flex; flex-direction: column; text-align: right; flex-grow: 1; }
+        .item-label { color: #a0aec0; font-size: 13px; margin-bottom: 4px; font-weight: 500; }
+        .item-value { color: #ffffff; font-size: 15px; font-weight: 700; text-align: right; }
+        
+        .item-icon {
+            background: rgba(255, 152, 0, 0.12); color: #ff9800; width: 44px; height: 44px;
+            display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 18px; flex-shrink: 0;
+        }
+
+        .leaflet-control-layers {
+            font-family: 'Tajawal', sans-serif !important; direction: rtl; border-radius: 10px !important;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3) !important; padding: 10px; border: 1px solid #2d3748;
+        }
+        
+        .nav-link-btn { text-decoration: none; display: block; }
+        .nav-link-btn:hover .popup-item { background: rgba(60, 162, 255, 0.15); transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        </style>
+        <title>Road Compass Maps</title>
+    </head>
+    <body>
+
+        <div id="top-bar">
+            <div class="social-icons">
+                <a href="https://www.facebook.com/p/Road-Compass-100091523867126/" target="_blank" class="icon-btn"><i class="fab fa-facebook-f"></i></a>
+                <a href="https://www.instagram.com/roadcompass.co/" target="_blank" class="icon-btn"><i class="fab fa-instagram"></i></a>
+                <a href="https://wa.me/96170422261" target="_blank" class="icon-btn"><i class="fab fa-whatsapp"></i></a>
+            </div>
+            <div class="main-title">ROAD <span>COMPASS</span></div>
+            <button class="toggle-sidebar-btn" id="open-sidebar" title="القائمة الرئيسية"><i class="fas fa-bars"></i></button>
+        </div>
+
+        <div id="sidebar">
+            <button class="close-sidebar-btn" id="close-sidebar"><i class="fas fa-times"></i></button>
+            <div class="sidebar-header">ROAD <span style="color:#ff9800;">COMPASS</span></div>
+            
+            <p class="sidebar-desc">
+                At Road Compass, we have been your trusted partner in surveying, quantity surveying, and road design. Based in Lebanon, we have successfully delivered projects both locally and internationally.
+            </p>
+            
+            <ul class="services-list">
+                <li>Aerial, land and marine surveying</li>
+                <li>Quantity surveying</li>
+                <li>Infrastructure work</li>
+            </ul>
+            
+            <div class="location-text">
+                <i class="fas fa-map-marker-alt" style="color:#e91e63; font-size: 18px;"></i>
+                Lebanon LB, Dubai AE, KSA SA
+            </div>
+
+            <div class="contact-cards">
+                <div class="contact-card">
+                    <div class="contact-icon"><i class="fab fa-whatsapp"></i></div>
+                    <div class="contact-info">
+                        <span class="contact-label">Contact via WhatsApp</span>
+                        <span class="contact-val">
+                            <a href="https://wa.me/96170422261" target="_blank">+961 70 422 261</a><br>
+                            <a href="https://wa.me/96171099533" target="_blank">+961 71 099 533</a>
+                        </span>
+                    </div>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-icon"><i class="fas fa-envelope"></i></div>
+                    <div class="contact-info">
+                        <span class="contact-label">Email Address</span>
+                        <span class="contact-val">
+                            <a href="mailto:info@roadcompass-ae.com">info@roadcompass-ae.com</a>
+                        </span>
+                    </div>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-icon"><i class="fas fa-globe"></i></div>
+                    <div class="contact-info">
+                        <span class="contact-label">Website</span>
+                        <span class="contact-val">
+                            <a href="https://roadcompass.org" target="_blank">roadcompass.org</a>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="map"></div>
+
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/multi-style-layer.js"></script>
+        <script src="js/leaflet-svg-shape-markers.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet.photon.js"></script>
+        <script src="js/leaflet-measure.js"></script>
+        <script src="data/_2.js"></script>
+        <script src="data/_3.js"></script>
+        <script src="data/_4.js"></script>
+        <script src="data/_5.js"></script>
+        <script src="data/_6.js"></script>
+        <script src="data/_7.js"></script>
+        <script>
+        document.getElementById('open-sidebar').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.add('active');
+        });
+        document.getElementById('close-sidebar').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.remove('active');
+        });
+
+        var clickedLayer = null;
+
+        function resetStyleHelper(layer) {
+            for (var i in layer._eventParents) {
+                if (typeof layer._eventParents[i].resetStyle === 'function') {
+                    layer._eventParents[i].resetStyle(layer);
+                }
+            }
+        }
+
+        function resetHighlight(e) {
+            if (e.target === clickedLayer) return;
+            resetStyleHelper(e.target);
+        }
+
+        function highlightFeature(e) {
+            var layer = e.target;
+            if (layer.feature.geometry.type === 'LineString' || layer.feature.geometry.type === 'MultiLineString') {
+              layer.setStyle({ color: 'rgba(255, 255, 0, 1.00)' });
+            } else {
+              layer.setStyle({ fillColor: 'rgba(255, 255, 0, 1.00)', fillOpacity: 1 });
+            }
+        }
+
+        function selectFeature(e) {
+            clickedLayer = e.target;
+            highlightFeature(e);
+        }
+
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        }).fitBounds([[34.346579260866676,35.772928233315504],[34.391088107712626,35.87662006658423]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> · <a href="https://leafletjs.com" title="Leaflet">Leaflet</a> · <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        
+        function createPopupItem(label, value, iconClass) {
+            if (value == null || value === '') return '';
+            return '<div class="popup-item">\
+                        <div class="item-icon"><i class="fas ' + iconClass + '"></i></div>\
+                        <div class="item-details">\
+                            <span class="item-label">' + label + '</span>\
+                            <span class="item-value">' + value + '</span>\
+                        </div>\
+                    </div>';
+        }
+
+        function createPopupLink(label, url, linkText, iconClass) {
+            if (!url || url === '') return '';
+            return '<a href="' + url + '" target="_blank" class="nav-link-btn">\
+                        <div class="popup-item">\
+                            <div class="item-icon"><i class="fas ' + iconClass + '"></i></div>\
+                            <div class="item-details">\
+                                <span class="item-label">' + label + '</span>\
+                                <span class="item-value" style="color: #3ca2ff;">' + linkText + ' <i class="fas fa-external-link-alt" style="font-size:12px; margin-right:5px;"></i></span>\
+                            </div>\
+                        </div>\
+                    </a>';
+        }
+
+        function addClassToPopupIfMedia(content, popup) {
+            var tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+            var imgTd = tempDiv.querySelector('.item-value img, td img');
+            if (imgTd) {
+                var src = imgTd.getAttribute('src');
+                if (/\.(jpg|jpeg|png|gif|bmp|webp|avif)$/i.test(src)) {
+                    popup._contentNode.classList.add('media');
+                    setTimeout(function() { popup.update(); }, 10);
+                }
+            } else { popup._contentNode.classList.remove('media'); }
+        }
+        
+        var zoomControl = L.control.zoom({ position: 'topleft' }).addTo(map);
+        var measureControl = new L.Control.Measure({ position: 'topleft', primaryLengthUnit: 'meters', secondaryLengthUnit: 'kilometers', primaryAreaUnit: 'sqmeters', secondaryAreaUnit: 'hectares' });
+        measureControl.addTo(map);
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].innerHTML = '';
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].className += ' fas fa-ruler';
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {}
+        
+        map.createPane('pane_GoogleHybrid_0');
+        map.getPane('pane_GoogleHybrid_0').style.zIndex = 400;
+        var layer_GoogleHybrid_0 = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { pane: 'pane_GoogleHybrid_0', opacity: 1.0, attribution: 'Map data ©2015 Google', minZoom: 1, maxZoom: 28 });
+        map.addLayer(layer_GoogleHybrid_0);
+        
+        map.createPane('pane_GoogleSatellite_1');
+        map.getPane('pane_GoogleSatellite_1').style.zIndex = 401;
+        var layer_GoogleSatellite_1 = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { pane: 'pane_GoogleSatellite_1', opacity: 1.0, attribution: 'Map data ©2015 Google', minZoom: 1, maxZoom: 28 });
+        map.addLayer(layer_GoogleSatellite_1);
+
+        /* --- عقارات الضم والفرز --- */
+        function pop__2(feature, layer) {
+            layer.on({ mouseout: resetHighlight, mouseover: highlightFeature, click: selectFeature });
+            var latlng = layer.getBounds ? layer.getBounds().getCenter() : layer.getLatLng();
+            var googleMapsUrl = 'https://www.google.com/maps?q=' + latlng.lat + ',' + latlng.lng;
+            var content = '<div class="custom-popup"><div class="popup-title">عقارات الضم والفرز</div>' +
+                createPopupItem('رقم العقار', feature.properties['text'], 'fa-hashtag') +
+                createPopupItem('المساحة', '<bdi dir="ltr">' + feature.properties['landCSV_su'] + ' م²</bdi>', 'fa-draw-polygon') +
+                createPopupItem('سعر المتر', '<bdi dir="ltr">' + feature.properties['landCSV_zo'] + ' $</bdi>', 'fa-tags') +
+                createPopupItem('المنطقة', feature.properties['MANTA2A'], 'fa-location-arrow') +
+                createPopupLink('الموقع', googleMapsUrl, 'خرائط جوجل', 'fa-location-arrow') + '</div>';
+            layer.on('popupopen', function(e) { addClassToPopupIfMedia(content, e.popup); });
+            layer.bindPopup(content, { maxHeight: 500, minWidth: 280 });
+        }
+        var pattern__2_0 = new L.StripePattern({ weight: 0.3, spaceWeight: 2.0, color: '#f8ed12', opacity: 1.0, spaceOpacity: 0, angle: 315 });
+        pattern__2_0.addTo(map);
+        function style__2_0() { return { pane: 'pane__2', stroke: false, fillOpacity: 1, fillPattern: pattern__2_0, interactive: true, } }
+        function style__2_1() { return { pane: 'pane__2', opacity: 1, color: 'rgba(248,237,18,1.0)', dashArray: '', lineCap: 'square', lineJoin: 'bevel', weight: 2.0, fillOpacity: 0, interactive: true, } }
+        map.createPane('pane__2');
+        map.getPane('pane__2').style.zIndex = 402;
+        var layer__2 = new L.geoJson.multiStyle(json__2, { dataVar: 'json__2', layerName: 'layer__2', pane: 'pane__2', onEachFeature: pop__2, styles: [style__2_0,style__2_1,] });
+        bounds_group.addLayer(layer__2);
+        map.addLayer(layer__2);
+
+        /* --- عقارات دده --- */
+        function pop__3(feature, layer) {
+            layer.on({ mouseout: resetHighlight, mouseover: highlightFeature, click: selectFeature });
+            var latlng = layer.getBounds ? layer.getBounds().getCenter() : layer.getLatLng();
+            var googleMapsUrl = 'https://www.google.com/maps?q=' + latlng.lat + ',' + latlng.lng;
+            var content = '<div class="custom-popup"><div class="popup-title">عقارات دده</div>' +
+                createPopupItem('رقم العقار', feature.properties['text'], 'fa-hashtag') +
+                createPopupItem('مساحة العقار', '<bdi dir="ltr">' + feature.properties['dede_surfa'] + ' م²</bdi>', 'fa-draw-polygon') +
+                createPopupItem('سعر المتر', '<bdi dir="ltr">' + feature.properties['dede_price'] + ' $</bdi>', 'fa-tags') +
+                createPopupItem('المنطقة', feature.properties['MANTA'], 'fa-location-arrow') +
+                createPopupLink('الموقع', googleMapsUrl, 'خرائط جوجل', 'fa-location-arrow') + '</div>';
+            layer.on('popupopen', function(e) { addClassToPopupIfMedia(content, e.popup); });
+            layer.bindPopup(content, { maxHeight: 500, minWidth: 280 });
+        }
+        var pattern__3_0 = new L.StripePattern({ weight: 0.3, spaceWeight: 2.0, color: '#f23232', opacity: 1.0, spaceOpacity: 0, angle: 315 });
+        pattern__3_0.addTo(map);
+        function style__3_0() { return { pane: 'pane__3', stroke: false, fillOpacity: 1, fillPattern: pattern__3_0, interactive: true, } }
+        function style__3_1() { return { pane: 'pane__3', opacity: 1, color: 'rgba(242,50,50,1.0)', dashArray: '', lineCap: 'square', lineJoin: 'bevel', weight: 2.0, fillOpacity: 0, interactive: true, } }
+        map.createPane('pane__3');
+        map.getPane('pane__3').style.zIndex = 403;
+        var layer__3 = new L.geoJson.multiStyle(json__3, { dataVar: 'json__3', layerName: 'layer__3', pane: 'pane__3', onEachFeature: pop__3, styles: [style__3_0,style__3_1,] });
+        bounds_group.addLayer(layer__3);
+        map.addLayer(layer__3);
+
+        /* --- عقارات بتوراتيج --- */
+        function pop__4(feature, layer) {
+            layer.on({ mouseout: resetHighlight, mouseover: highlightFeature, click: selectFeature });
+            var latlng = layer.getBounds ? layer.getBounds().getCenter() : layer.getLatLng();
+            var googleMapsUrl = 'https://www.google.com/maps?q=' + latlng.lat + ',' + latlng.lng;
+            var content = '<div class="custom-popup"><div class="popup-title">عقارات بتوراتيج</div>' +
+                createPopupItem('رقم العقار', feature.properties['text'], 'fa-hashtag') +
+                createPopupItem('مساحة العقار', '<bdi dir="ltr">' + feature.properties['btrotij_su'] + ' م²</bdi>', 'fa-draw-polygon') +
+                createPopupItem('التصنيف', feature.properties['btrotij_ta'], 'fa-layer-group') +
+                createPopupItem('سعر المتر', '<bdi dir="ltr">' + feature.properties['btrotij_pr'] + ' $</bdi>', 'fa-tags') +
+                createPopupItem('المنطقة', feature.properties['MANTA2A'], 'fa-location-arrow') +
+                createPopupLink('الموقع', googleMapsUrl, 'خرائط جوجل', 'fa-location-arrow') + '</div>';
+            layer.on('popupopen', function(e) { addClassToPopupIfMedia(content, e.popup); });
+            layer.bindPopup(content, { maxHeight: 500, minWidth: 280 });
+        }
+        var pattern__4_0 = new L.StripePattern({ weight: 0.3, spaceWeight: 2.0, color: '#f23232', opacity: 1.0, spaceOpacity: 0, angle: 225 });
+        pattern__4_0.addTo(map);
+        function style__4_0() { return { pane: 'pane__4', stroke: false, fillOpacity: 1, fillPattern: pattern__4_0, interactive: true, } }
+        function style__4_1() { return { pane: 'pane__4', opacity: 1, color: 'rgba(242,50,50,1.0)', dashArray: '', lineCap: 'square', lineJoin: 'bevel', weight: 2.0, fillOpacity: 0, interactive: true, } }
+        map.createPane('pane__4');
+        map.getPane('pane__4').style.zIndex = 404;
+        var layer__4 = new L.geoJson.multiStyle(json__4, { dataVar: 'json__4', layerName: 'layer__4', pane: 'pane__4', onEachFeature: pop__4, styles: [style__4_0,style__4_1,] });
+        bounds_group.addLayer(layer__4);
+        map.addLayer(layer__4);
+
+        /* --- تفاصيل البناء والشقق --- */
+        function pop__5(feature, layer) {
+            layer.on({ mouseout: resetHighlight, mouseover: highlightFeature, click: selectFeature });
+            var latlng = layer.getBounds ? layer.getBounds().getCenter() : layer.getLatLng();
+            var googleMapsUrl = 'https://www.google.com/maps?q=' + latlng.lat + ',' + latlng.lng;
+            
+            function formatApt(su, pr) {
+                if (!su && !pr) return '';
+                var s = su ? '<bdi dir="ltr">' + su + ' م²</bdi>' : '';
+                var p = pr ? '<bdi dir="ltr">' + pr + ' $</bdi>' : '';
+                if (s && p) return s + ' <span style="color:#718096; margin:0 5px;">|</span> ' + p;
+                return s || p;
+            }
+
+            var apt1_val = formatApt(feature.properties['BILDING_SU'], feature.properties['BILDING_PR']);
+            var apt2_val = formatApt(feature.properties['BILDING__1'], feature.properties['BILDING__2']);
+            var apt3_val = formatApt(feature.properties['BILDING__3'], feature.properties['BILDING__4']);
+
+            var bId = String(feature.properties['id'] || feature.properties['BILDING_NO'] || '').trim();
+            var notes = "";
+            if (bId === '1') {
+                notes = 'DOWNPAYMENT 30%';
+            } else if (bId === '2') {
+                notes = '1 YEAR INSTALLMENT';
+            } else if (bId === '3') {
+                notes = '2 YEAR INSTALLMENT';
+            }
+
+            var imgData = feature.properties['IMAGE'] || '';
+            var imgUrl = '';
+            var hrefMatch = imgData.match(/href=['"]([^'"]+)['"]/);
+            var srcMatch = imgData.match(/src=['"]([^'"]+)['"]/);
+            
+            if (hrefMatch) imgUrl = hrefMatch[1];
+            else if (srcMatch) imgUrl = srcMatch[1];
+            else imgUrl = imgData.replace(/<[^>]*>?/gm, '').trim();
+            
+            var content = '<div class="custom-popup"><div class="popup-title">تفاصيل البناء</div>' +
+                (apt1_val ? createPopupItem('شقة 1', apt1_val, 'fa-key') : '') +
+                (apt2_val ? createPopupItem('شقة 2', apt2_val, 'fa-key') : '') +
+                (apt3_val ? createPopupItem('شقة 3', apt3_val, 'fa-key') : '') +
+                (notes ? createPopupItem('ملاحظات', notes, 'fa-info-circle') : '') +
+                (imgUrl && imgUrl.toLowerCase() !== 'null' && imgUrl !== '' ? createPopupLink('صورة العقار', imgUrl, 'عرض الصورة', 'fa-camera') : '') +
+                createPopupLink('الموقع', googleMapsUrl, 'خرائط جوجل', 'fa-location-arrow') + '</div>';
+            
+            layer.on('popupopen', function(e) { addClassToPopupIfMedia(content, e.popup); });
+            layer.bindPopup(content, { maxHeight: 500, minWidth: 280 });
+        }
+        function style__5_0() { return { pane: 'pane__5', radius: 17.6, opacity: 1, color: 'rgba(250,139,57,1.0)', weight: 4.0, fill: true, fillOpacity: 1, fillColor: 'rgba(255,255,255,1.0)', interactive: true, } }
+        function style__5_1() { return { pane: 'pane__5', radius: 7.2, opacity: 1, color: 'rgba(250,176,124,1.0)', weight: 1.0, fill: true, fillOpacity: 1, fillColor: 'rgba(250,176,124,1.0)', interactive: true, } }
+        map.createPane('pane__5');
+        map.getPane('pane__5').style.zIndex = 405;
+        var layer__5 = new L.geoJson.multiStyle(json__5, { dataVar: 'json__5', layerName: 'layer__5', pane: 'pane__5', onEachFeature: pop__5,
+            pointToLayers: [function (f, l) { return L.shapeMarker(l, style__5_0(f)); }, function (f, l) { return L.shapeMarker(l, style__5_1(f)); },]
+        });
+        bounds_group.addLayer(layer__5);
+        map.addLayer(layer__5);
+
+        /* --- القلمون وراس مسقا --- */
+        function pop__6(feature, layer) {
+            layer.on({ mouseout: resetHighlight, mouseover: highlightFeature, click: selectFeature });
+            var latlng = layer.getBounds ? layer.getBounds().getCenter() : layer.getLatLng();
+            var googleMapsUrl = 'https://www.google.com/maps?q=' + latlng.lat + ',' + latlng.lng;
+            var content = '<div class="custom-popup"><div class="popup-title">القلمون وراس مسقا</div>' +
+                createPopupItem('رقم العقار', feature.properties['text'], 'fa-hashtag') +
+                createPopupItem('مساحة العقار', '<bdi dir="ltr">' + feature.properties['akar_surfa'] + ' م²</bdi>', 'fa-draw-polygon') +
+                createPopupItem('سعر المتر', '<bdi dir="ltr">' + feature.properties['akar_PRICE'] + ' $</bdi>', 'fa-tags') +
+                createPopupItem('المنطقة', feature.properties['akar_MNTA2'], 'fa-location-arrow') +
+                createPopupLink('الموقع', googleMapsUrl, 'خرائط جوجل', 'fa-location-arrow') + '</div>';
+            layer.on('popupopen', function(e) { addClassToPopupIfMedia(content, e.popup); });
+            layer.bindPopup(content, { maxHeight: 500, minWidth: 280 });
+        }
+        function style__6_0() { return { pane: 'pane__6', opacity: 1, color: 'rgba(35,35,35,1.0)', weight: 1.0, fill: true, fillOpacity: 1, fillColor: 'rgba(190,207,80,1.0)', interactive: true, } }
+        map.createPane('pane__6');
+        map.getPane('pane__6').style.zIndex = 406;
+        var layer__6 = new L.geoJson(json__6, { dataVar: 'json__6', layerName: 'layer__6', pane: 'pane__6', onEachFeature: pop__6, style: style__6_0, });
+        bounds_group.addLayer(layer__6);
+        map.addLayer(layer__6);
+
+        /* --- النخلة --- */
+        function pop__7(feature, layer) {
+            layer.on({ mouseout: resetHighlight, mouseover: highlightFeature, click: selectFeature });
+            var latlng = layer.getBounds ? layer.getBounds().getCenter() : layer.getLatLng();
+            var googleMapsUrl = 'https://www.google.com/maps?q=' + latlng.lat + ',' + latlng.lng;
+            var content = '<div class="custom-popup"><div class="popup-title">عقارات النخلة</div>' +
+                createPopupItem('مساحة العقار', '<bdi dir="ltr">' + feature.properties['nakleh_sur'] + ' م²</bdi>', 'fa-draw-polygon') +
+                createPopupItem('الاستثمار', feature.properties['nakleh_2st'], 'fa-chart-line') +
+                createPopupItem('السعر', '<bdi dir="ltr">' + feature.properties['nakleh_pri'] + ' $</bdi>', 'fa-tags') +
+                createPopupItem('المنطقة', feature.properties['nakleh_man'], 'fa-location-arrow') +
+                createPopupLink('الموقع', googleMapsUrl, 'خرائط جوجل', 'fa-location-arrow') + '</div>';
+            layer.on('popupopen', function(e) { addClassToPopupIfMedia(content, e.popup); });
+            layer.bindPopup(content, { maxHeight: 500, minWidth: 280 });
+        }
+        function style__7_0() { return { pane: 'pane__7', opacity: 1, color: 'rgba(35,35,35,1.0)', weight: 1.0, fill: true, fillOpacity: 1, fillColor: 'rgba(196,60,57,1.0)', interactive: true, } }
+        map.createPane('pane__7');
+        map.getPane('pane__7').style.zIndex = 407;
+        var layer__7 = new L.geoJson(json__7, { dataVar: 'json__7', layerName: 'layer__7', pane: 'pane__7', onEachFeature: pop__7, style: style__7_0, });
+        bounds_group.addLayer(layer__7);
+        map.addLayer(layer__7);
+        
+        // --- قائمة الطبقات ---
+        var overlaysTree = [
+            {label: '<img src="legend/_7.png" /> النخلة', layer: layer__7},
+            {label: '<img src="legend/_6.png" /> القلمون -- راس مسقا', layer: layer__6},
+            {label: '<img src="legend/_5.png" /> شقق', layer: layer__5},
+            {label: '<img src="legend/_4.png" /> بتوراتيج', layer: layer__4},
+            {label: '<img src="legend/_3.png" /> دده', layer: layer__3},
+            {label: '<img src="legend/_2.png" /> الضم و الفرز', layer: layer__2},
+            {label: "Google Satellite", layer: layer_GoogleSatellite_1},
+            {label: "Google Hybrid", layer: layer_GoogleHybrid_0},]
+            
+        var lay = L.control.layers.tree(null, overlaysTree,{ 
+            collapsed: true, 
+        });
+        lay.addTo(map);
+        setBounds();
+        resetLabels([layer__3,layer__4,layer__6]);
+
+        map.on('overlayadd', function(e) {
+            if (e.layer && typeof e.layer.getBounds === 'function') {
+                var bounds = e.layer.getBounds();
+                if (bounds && bounds.isValid()) {
+                    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 17, animate: true });
+                }
+            }
+        });
+
+        map.on('popupclose', function(e) {
+            if (e.popup && e.popup._source) {
+                resetStyleHelper(e.popup._source);
+                if (clickedLayer === e.popup._source) { clickedLayer = null; }
+            }
+        });
+
+        map.on("zoomend", function(){ resetLabels([layer__3,layer__4,layer__6]); });
+        map.on("layeradd", function(){ resetLabels([layer__3,layer__4,layer__6]); });
+        map.on("layerremove", function(){ resetLabels([layer__3,layer__4,layer__6]); });
+        </script>        
+    </body>
+</html>
